@@ -1,0 +1,111 @@
+#!/bin/bash
+#
+# This script will build 2 versions of v8 for Armv8, Aarch64 (known as arm64
+# in v8). The 2 versions are :
+#
+# 1). direct-calls where function calls are effected, where possible, using
+#     single branch and link instruction and are therefore limited to 128MB PC
+#     relative displacements. This version is identified by commit "0600afddd".
+#
+# 2). pre-direct calls is the commit immediately preceding that in 1). i.e.
+#     "735875f82". Calls are made using either a 4 instruction sequence:
+#     movz,movk,movk,blr; or a 2 instruction sequence: ldr,blr.
+#
+# The 2 versions are packaged into 2 zip archives: direct-calls.zip and
+# pre-direct-calls.zip in the directory that this script is executed in.
+#------------------------------------------------------------------------------
+
+#
+# Number of cpus to use for build.
+#
+ncpus=4
+
+#
+# The commit with the direct calls implementation
+#
+direct_calls_commit=0600afddd
+
+#
+# The commit preceding the direct calls (from git log)
+#
+pre_direct_calls_commit=735875f82
+
+#
+# Capture the current working directory for generated artifacts.
+#
+cwd=`pwd`
+
+#
+# Prepend depot_tools to the path.
+#
+export PATH=`pwd`/depot_tools:$PATH
+
+#
+# Clone the v8 source repository and go there.
+#
+mkdir v8
+pushd v8
+fetch v8
+pushd v8
+
+#
+# Sysroot is required for the build.
+#
+echo "$0: Installing sysroot"
+build/linux/sysroot_scripts/install-sysroot.py --arch=arm64
+
+#
+# Checkout the direct calls commit.
+#
+echo "$0: Checkout direct calls"
+git checkout -b direct-calls $direct_calls_commit
+
+#
+# Do some important stuff.
+#
+echo "$0: Running gclient sync"
+gclient sync
+
+#
+# Configure the build.
+#
+echo "$0: Configuring build"
+build_root=out/arm64.release
+gn gen $build_root \
+    --args="is_debug=false target_cpu=\"arm64\" v8_target_cpu=\"arm64\""
+
+
+#
+# Build v8
+#
+echo "$0: Building"
+ninja -j $ncpus -C $build_root
+
+#
+# Create a zip archive containing the direct branch build.
+#
+echo "$0: Archiving artifacts"
+pushd $build_root
+    zip ${cwd}/direct-calls.zip *.bin d8 icudtl.dat
+popd
+
+#
+# Get the commit immediately prior to direct-calls
+#
+git checkout -b pre-direct-calls $pre_direct_calls_commit
+
+#
+# Re-build v8
+#
+gn clean $build_root
+ninja -j $ncpus -C $build_root
+
+#
+# Create a zip archive containing the pre direct calls build.
+#
+pushd $build_root
+    zip ${cwd}/pre-direct-calls.zip *.bin d8 icudtl.dat
+popd
+
+popd
+popd
