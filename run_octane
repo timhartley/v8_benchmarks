@@ -1,0 +1,56 @@
+#!/bin/bash
+
+iterations=10
+
+#
+# todo override iterations
+#
+if [ $# != 1 ] ; then
+    echo "Usage $0 <v8 zip archive>"
+    exit;
+fi
+
+v8_archive=$1
+
+if [ ! -e $v8_archive ] ; then
+    echo No such file \"$v8_archive\"
+    echo "Usage $0 <v8 zip archive>"
+    exit;
+fi
+
+arch=`arch`
+
+if [ "aarch64" != $arch ] ; then
+    echo Benchmarks should be run on \"aarch64\" not \"$arch\" 
+    exit
+fi
+
+if [ ! -e "octane/run.js" ]; then
+    echo "Run git submodule init octane"
+    exit
+fi
+
+mkdir v8
+unzip $v8_archive -d v8
+export PATH=`pwd`/v8:$PATH
+
+#
+# Run benchmarks.
+#-----------------
+
+# Base the output file on the v8 archive filename.
+outfile=`basename $v8_archive .zip`
+outfile+=".out"
+
+# Take care not to clobber any existing results.
+if [ -e $outfile ]; then
+    echo "File \"$outfile\" already exists, please (re)move."
+    exit
+fi
+
+pushd octane
+for i in `seq 1 $iterations`; do
+    echo Running iteration $i of $iterations.
+    ../v8/d8 run.js >> ../$outfile
+done
+popd
