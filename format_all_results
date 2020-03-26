@@ -1,0 +1,19 @@
+#!/bin/bash
+
+# Output file name
+file=results.out
+
+# Input results
+dc=direct-calls.out
+pdc=pre-direct-calls.out
+
+
+if [ -e $file ] ; then
+    echo "$file exists please (re)move"
+    exit
+fi
+
+./format_results $dc direct 1 > $file
+./format_results $pdc indirect 0 >> $file
+
+

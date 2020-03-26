@@ -1,0 +1,25 @@
+#!/bin/bash
+#
+# Format the raw results from the Octane benchmarks into a format that can
+# be used to produce violin plots using python/seaborn.
+#
+# Optionally output the column headers.
+#
+
+if [ $# -lt 2 ] ; then
+    echo "Usage $0 <results file> <call identifier> [ <output header> ]"
+    exit
+fi
+
+results_file=$1
+calls=$2
+output_header=$3
+
+#
+# Output the column headers
+#
+if [[ $output_header -ne "" ]] ||  [[ $output_header != 0 ]] ; then
+    echo "Benchmark,calls,score"
+fi
+
+awk -v calls="$calls" -F ': ' '/^[^:]+:\s*[0-9]+/ {print $1 "," calls "," $2} ' <  $results_file
