@@ -26,12 +26,18 @@ if [ "aarch64" != $arch ] ; then
 fi
 
 if [ ! -e "octane/run.js" ]; then
-    echo "Run git submodule init octane"
-    exit
+    git submodule init octane 
+    git submodule update octane 
 fi
 
-mkdir v8
-unzip $v8_archive -d v8
+#
+# Create the directory for the v8 platform.
+#
+if [ ! -d v8 ]; then
+    mkdir v8
+fi
+
+unzip -o $v8_archive -d v8
 export PATH=`pwd`/v8:$PATH
 
 #
