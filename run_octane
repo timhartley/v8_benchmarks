@@ -1,12 +1,10 @@
 #!/bin/bash
 
+usage="Usage $0 <v8 zip archive> [iterations]"
 iterations=10
 
-#
-# todo override iterations
-#
-if [ $# != 1 ] ; then
-    echo "Usage $0 <v8 zip archive>"
+if [ $# -lt 1 ] ; then
+    echo "$usage"
     exit;
 fi
 
@@ -14,8 +12,18 @@ v8_archive=$1
 
 if [ ! -e $v8_archive ] ; then
     echo No such file \"$v8_archive\"
-    echo "Usage $0 <v8 zip archive>"
+    echo "$usage"
     exit;
+fi
+
+if [ $# -ge 2 ]; then
+    if [[ $2 =~ ^[0-9]+$ ]]; then
+        iterations=$2
+    else
+        echo "Bad number of iterations: $2"
+        echo "$usage"
+        exit
+    fi
 fi
 
 arch=`arch`
@@ -24,6 +32,8 @@ if [ "aarch64" != $arch ] ; then
     echo Benchmarks should be run on \"aarch64\" not \"$arch\" 
     exit
 fi
+
+echo "Running $iterations iterations with $v8_archive"
 
 if [ ! -e "octane/run.js" ]; then
     git submodule init octane 
